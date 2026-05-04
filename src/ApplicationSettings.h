@@ -120,4 +120,6 @@ public:
     DEFINE_SETTING(URLHighlighting, urlHighlighting, bool)
     DEFINE_SETTING(ShowLineNumbers, showLineNumbers, bool)
     DEFINE_SETTING(AutoCompletion, autoCompletion, bool)
+
+    DEFINE_SETTING(DarkMode, darkMode, bool)
 };
