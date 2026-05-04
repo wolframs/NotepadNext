@@ -76,6 +76,17 @@ public:
     };
     Q_ENUM(DefaultDirectoryBehaviorEnum)
 
+    enum ThemeMode {
+        SystemTheme,
+        LightTheme,
+        DarkTheme
+    };
+    Q_ENUM(ThemeMode)
+
+    // Resolves Theme=System against the current QStyleHints color scheme.
+    bool effectiveDarkMode() const;
+    Q_SIGNAL void effectiveDarkModeChanged(bool dark);
+
     template <typename T>
     T get(const char *key, const T &defaultValue) const
     { return value(QLatin1String(key), defaultValue).template value<T>(); }
@@ -121,5 +132,5 @@ public:
     DEFINE_SETTING(ShowLineNumbers, showLineNumbers, bool)
     DEFINE_SETTING(AutoCompletion, autoCompletion, bool)
 
-    DEFINE_SETTING(DarkMode, darkMode, bool)
+    DEFINE_SETTING(Theme, theme, ThemeMode)
 };
