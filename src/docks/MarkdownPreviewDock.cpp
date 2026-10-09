@@ -1,3 +1,22 @@
+/*
+ * This file is part of Notepad Next.
+ * Copyright 2026 Wolfram Siener
+ *
+ * Notepad Next is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Notepad Next is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Notepad Next.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+
 #include "MarkdownPreviewDock.h"
 #include "MainWindow.h"
 #include "MarkdownPreviewBrowser.h"
@@ -12,37 +31,49 @@ MarkdownPreviewDock::MarkdownPreviewDock(MainWindow *window)
     setWidget(browser);
     setMinimumWidth(260);
     toggleViewAction()->setObjectName(QStringLiteral("actionMarkdownPreview"));
-    toggleViewAction()->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+M")));
+    // Ctrl+Alt aliases AltGr on Windows keyboard layouts (e.g. German µ).
+    toggleViewAction()->setShortcut(QKeySequence(QStringLiteral("Ctrl+Shift+M")));
     refreshTimer.setSingleShot(true);
     refreshTimer.setInterval(250);
     connect(&refreshTimer, &QTimer::timeout, this, &MarkdownPreviewDock::refresh);
     connect(window, &MainWindow::editorActivated, this, &MarkdownPreviewDock::watchEditor);
     connect(browser, &MarkdownPreviewBrowser::localFileRequested, window, &MainWindow::openFile);
     connect(this, &QDockWidget::visibilityChanged, this, [this](bool visible) {
-        if (visible) watchEditor(this->window->currentEditor());
-        else { refreshTimer.stop(); disconnect(editorConnection); }
+        watchEditor(visible ? this->window->currentEditor() : nullptr);
     });
 }
 
 void MarkdownPreviewDock::watchEditor(ScintillaNext *next)
 {
     disconnect(editorConnection);
+    disconnect(renameConnection);
+    disconnect(lexerConnection);
     refreshTimer.stop();
     editor = next;
-    if (!isVisible()) return;
+    if (!isVisible()) {
+        return;
+    }
     if (editor) {
         editorConnection = connect(editor, &ScintillaNext::updateUi, this, [this](Scintilla::Update flags) {
-            if (Scintilla::FlagSet(flags, Scintilla::Update::Text)) refreshTimer.start();
+            if (Scintilla::FlagSet(flags, Scintilla::Update::Text)) {
+                refreshTimer.start();
+            }
         });
-        connect(editor, &ScintillaNext::renamed, this, &MarkdownPreviewDock::refresh, Qt::UniqueConnection);
+        renameConnection = connect(editor, &ScintillaNext::renamed, this, &MarkdownPreviewDock::refresh);
+        lexerConnection = connect(editor, &ScintillaNext::lexerChanged, this, &MarkdownPreviewDock::refresh);
     }
     refresh();
 }
 
 void MarkdownPreviewDock::refresh()
 {
-    if (!isVisible()) return;
-    if (!editor) { browser->setPlainText(tr("Open a Markdown document to preview it.")); return; }
+    if (!isVisible()) {
+        return;
+    }
+    if (!editor) {
+        browser->setPlainText(tr("Open a Markdown document to preview it."));
+        return;
+    }
     const QString suffix = editor->getFileInfo().suffix().toLower();
     if (editor->languageName != QStringLiteral("Markdown") && suffix != QStringLiteral("md")
         && suffix != QStringLiteral("markdown")) {
@@ -50,8 +81,8 @@ void MarkdownPreviewDock::refresh()
         return;
     }
     // Avoid blocking the editor on very large documents.
-    if (editor->length() > 2 * 1024 * 1024) {
-        browser->setPlainText(tr("Preview is limited to documents up to 2 MiB."));
+    if (editor->length() > 256 * 1024) {
+        browser->setPlainText(tr("Preview is limited to documents up to 256 KiB."));
         return;
     }
     const QUrl base = editor->isFile() ? QUrl::fromLocalFile(editor->getFilePath()) : QUrl();

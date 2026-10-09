@@ -13,10 +13,6 @@ qt_add_executable(NotepadNext
 	DockedEditorTitleBar.h
 
 	EditorManager.h
-	docks/MarkdownPreviewDock.h
-	docks/MarkdownPreviewDock.cpp
-	widgets/MarkdownPreviewBrowser.h
-	widgets/MarkdownPreviewBrowser.cpp
 	EditorPrintPreviewRenderer.h
 	FileDialogHelpers.h
 	Finder.h
@@ -171,6 +167,8 @@ qt_add_executable(NotepadNext
 	docks/LuaConsoleDock.cpp
 	docks/LuaConsoleDock.h
 	docks/LuaConsoleDock.ui
+	docks/MarkdownPreviewDock.cpp
+	docks/MarkdownPreviewDock.h
 	docks/SearchResultsDock.cpp
 	docks/SearchResultsDock.h
 	docks/SearchResultsDock.ui
@@ -178,6 +176,8 @@ qt_add_executable(NotepadNext
 	widgets/EditorInfoStatusBar.h
 	widgets/FadingIndicator.cpp
 	widgets/FadingIndicator.h
+	widgets/MarkdownPreviewBrowser.cpp
+	widgets/MarkdownPreviewBrowser.h
 	widgets/QuickFindWidget.cpp
 	widgets/QuickFindWidget.h
 	widgets/QuickFindWidget.ui

@@ -113,7 +113,6 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
 
     ui->setupUi(this);
 
-    applyCustomShortcuts();
 
     qInfo("setupUi Completed");
 
@@ -1012,6 +1011,7 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
     markdownPreview->hide();
     addDockWidget(Qt::RightDockWidgetArea, markdownPreview);
     ui->menuView->addAction(markdownPreview->toggleViewAction());
+    applyCustomShortcuts();
 
     connect(app->getSettings(), &ApplicationSettings::showMenuBarChanged, this, [this](bool showMenuBar) {
         // Don't 'hide' it, else the actions won't be enabled
@@ -1047,7 +1047,7 @@ void MainWindow::applyCustomShortcuts()
     settings->beginGroup("Shortcuts");
 
     for (const QString &actionName : settings->childKeys()) {
-        QAction *action = findChild<QAction *>(QStringLiteral("action") + actionName, Qt::FindDirectChildrenOnly);
+        QAction *action = findChild<QAction *>(QStringLiteral("action") + actionName);
 
         if (!action) {
             qWarning() << "CustomShortcut: Cannot find action" << actionName;
@@ -1076,7 +1076,7 @@ void MainWindow::applyCustomShortcuts()
                 }
         }
 
-        if (!shortcuts.empty()) {
+        if (!shortcuts.empty() || value.toStringList().isEmpty()) {
             action->setShortcuts(shortcuts);
         }
     }
@@ -1981,7 +1981,6 @@ void MainWindow::setLanguage(ScintillaNext *editor, const QString &languageName)
     qInfo("Language Name: %s", qUtf8Printable(languageName));
 
     app->setEditorLanguage(editor, languageName);
-    if (auto *preview = findChild<MarkdownPreviewDock *>()) preview->refresh();
 }
 
 void MainWindow::bringWindowToForeground()
