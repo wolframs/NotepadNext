@@ -2,9 +2,11 @@
 #include "MarkdownPreviewBrowser.h"
 #include <QApplication>
 #include <QFile>
+#include <QDir>
 #include <QImage>
 #include <QSignalSpy>
 #include <QStyleHints>
+#include <QScrollBar>
 #include <QTemporaryDir>
 #include <QTextBlock>
 #include <QTextTable>
@@ -12,8 +14,6 @@
 #include "lua.hpp"
 
 class TestBrowser : public MarkdownPreviewBrowser {
-public:
-    using MarkdownPreviewBrowser::loadResource;
 };
 
 class EditorFeatureTests : public QObject {
@@ -60,6 +60,64 @@ private slots:
         QCOMPARE(browser.toPlainText().trimmed(), QString("Unsaved replacement"));
     }
 
+    void repeatedRendersReleaseDocumentsAndPreserveScroll() {
+        TestBrowser browser;
+        browser.resize(400, 250);
+        browser.show();
+        QString text;
+        for (int i = 0; i < 300; ++i) text += QString("Paragraph %1\n\n").arg(i);
+        const QUrl base("file:///example/README.md");
+        browser.renderMarkdown(text, base);
+        QCoreApplication::processEvents();
+        browser.verticalScrollBar()->setValue(browser.verticalScrollBar()->maximum() / 2);
+        const int position = browser.verticalScrollBar()->value();
+        QVERIFY(position > 0);
+        for (int i = 0; i < 20; ++i) browser.renderMarkdown(text + "Update", base);
+        QCOMPARE(browser.findChildren<QTextDocument *>().size(), 1);
+        QCOMPARE(browser.verticalScrollBar()->value(), position);
+    }
+
+    void headingLinksHaveStableTargets() {
+        TestBrowser browser;
+        browser.renderMarkdown("# A **Heading**!\n\n# A Heading!\n\n# Überschrift\n", QUrl());
+        auto block = browser.document()->begin();
+        QCOMPARE(block.begin().fragment().charFormat().anchorNames(), QStringList{"a-heading"});
+        block = block.next();
+        QCOMPARE(block.begin().fragment().charFormat().anchorNames(), QStringList{"a-heading-1"});
+        block = block.next();
+        QCOMPARE(block.begin().fragment().charFormat().anchorNames(), QStringList{QString::fromUtf8("überschrift")});
+    }
+
+    void combinedLanguageStylesAreResetOnlyOnce() {
+        auto *state = luaL_newstate();
+        luaL_openlibs(state);
+        QCOMPARE(luaL_dostring(state, "require = function() return {} end"), LUA_OK);
+        QCOMPARE(luaL_dofile(state, NOTEPADNEXT_SOURCE_DIR "/src/scripts/init.lua"), LUA_OK);
+        const char *checks = "languages.PHP = dofile('" NOTEPADNEXT_SOURCE_DIR "/src/languages/php.lua')\n"
+            "languages.HTML = dofile('" NOTEPADNEXT_SOURCE_DIR "/src/languages/html.lua')\n" R"(
+            editor = {StyleFore={}, StyleBack={}, StyleBold={}, StyleItalic={}, StyleUnderline={},
+                      StyleEOLFilled={}, KeyWords={}, Property={}, MarginWidthN={}}
+            local resets = 0
+            function editor:StyleClearAll()
+                resets = resets + 1
+                local fg, bg = self.StyleFore[32], self.StyleBack[32]
+                self.StyleFore = {[32]=fg}; self.StyleBack = {[32]=bg}
+            end
+            for _, dark in ipairs({false, true}) do
+                dark_mode = dark; UpdateTheme(); resets = 0
+                SetLanguage('PHP')
+                assert(resets == 1)
+                assert(editor.StyleFore[118] ~= nil)
+                assert(editor.StyleFore[121] ~= theme.default_fg)
+                assert(editor.StyleFore[1] ~= nil)
+            end
+        )";
+        const int result = luaL_dostring(state, checks);
+        const QString error = result == LUA_OK ? QString() : QString::fromUtf8(lua_tostring(state, -1));
+        lua_close(state);
+        QVERIFY2(result == LUA_OK, qPrintable(error));
+    }
+
     void resourcesResolveRelativeToEachDocumentAndBlockNetwork() {
         QTemporaryDir first, second;
         QVERIFY(first.isValid() && second.isValid());
@@ -69,13 +127,23 @@ private slots:
         QVERIFY(blue.save(second.filePath("image.png")));
         TestBrowser browser;
         browser.renderMarkdown("![image](image.png)", QUrl::fromLocalFile(first.filePath("README.md")));
-        auto image = browser.loadResource(QTextDocument::ImageResource, QUrl("image.png")).value<QImage>();
+        auto image = browser.document()->resource(QTextDocument::ImageResource, QUrl("image.png")).value<QImage>();
         QCOMPARE(image.pixelColor(0, 0), QColor(Qt::red));
         browser.renderMarkdown("![image](image.png)", QUrl::fromLocalFile(second.filePath("README.md")));
-        image = browser.loadResource(QTextDocument::ImageResource, QUrl("image.png")).value<QImage>();
+        image = browser.document()->resource(QTextDocument::ImageResource, QUrl("image.png")).value<QImage>();
         QCOMPARE(image.pixelColor(0, 0), QColor(Qt::blue));
-        QVERIFY(!browser.loadResource(QTextDocument::ImageResource, QUrl("https://example.com/image.png")).isValid());
-        QVERIFY(!browser.loadResource(QTextDocument::ImageResource, QUrl("file://server/share/image.png")).isValid());
+        // Deliberately do not contact a host; both spellings are denied before I/O.
+        for (const auto &url : {"https://example.invalid/image.png", "file://example.invalid/share/image.png",
+                               "file:////example.invalid/share/image.png", "file:///\\\\example.invalid/share/image.png"}) {
+            QVERIFY(browser.document()->resource(QTextDocument::ImageResource, QUrl(url)).value<QImage>().isNull());
+        }
+        // An untitled document must not read relative images from the process cwd.
+        const QString previousCwd = QDir::currentPath();
+        QVERIFY(QDir::setCurrent(first.path()));
+        browser.renderMarkdown("![image](image.png)", QUrl());
+        const QImage untitled = browser.document()->resource(QTextDocument::ImageResource, QUrl("image.png")).value<QImage>();
+        QVERIFY(QDir::setCurrent(previousCwd));
+        QVERIFY(untitled.isNull());
     }
 
     void localLinksOpenFilesWithoutReplacingPreview() {
@@ -91,6 +159,7 @@ private slots:
         QCOMPARE(browser.toPlainText().trimmed(), QString("next"));
         browser.anchorClicked(QUrl("#heading"));
         browser.anchorClicked(QUrl("javascript:alert(1)"));
+        browser.anchorClicked(QUrl("file:////example.invalid/share/file.md"));
         QCOMPARE(requested.size(), 1);
     }
 

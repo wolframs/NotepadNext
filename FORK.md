@@ -16,14 +16,17 @@ syntax foregrounds for readability against the dark editor canvas.
 
 ## Markdown preview
 
-View → Markdown Preview, or **Ctrl+Alt+M**, opens a dockable preview beside the editor.
+View → Markdown Preview, or **Ctrl+Shift+M**, opens a dockable preview beside the editor.
 It follows the active Markdown tab and updates after a short pause in typing, including unsaved edits.
 The dock's visibility and position are saved with the other window layout settings.
 
 Qt's Markdown renderer supports headings, emphasis, links, lists, tables, and fenced code blocks.
 Local images resolve relative to the document; clicking a local file link opens it in the editor.
 Web links open in the default browser only when clicked. Remote images are not fetched.
-Preview is limited to documents up to 2 MiB to keep the editor responsive.
+Preview is limited to documents up to 256 KiB to keep the editor responsive.
+Relative images require a saved document path. UNC URLs are blocked, including hostless spellings.
+Heading links use stable anchors; link targets appear on hover. The shortcut can be overridden
+through the existing `Shortcuts/MarkdownPreview` setting (an empty list disables it).
 
 This is a text-document renderer, not a web browser. It does not execute scripts, render Mermaid,
 provide browser-equivalent HTML/CSS, or syntax-highlight fenced code blocks.
@@ -48,4 +51,6 @@ ctest --test-dir build --output-on-failure
 ```
 
 Tests cover Markdown structure and content refresh, relative image resolution across document folders,
-network-resource blocking, local links, theme persistence and signals, and dark syntax colour conversion.
+network-resource blocking through the document renderer, local links and heading anchors,
+document lifetime and scroll position, theme persistence and signals, and combined PHP/HTML styles.
+The build workflow enables these tests across its Qt/platform matrix.
