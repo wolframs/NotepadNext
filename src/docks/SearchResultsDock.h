@@ -61,6 +61,8 @@ signals:
     void searchResultActivated(ScintillaNext *editor, int lineNumber, int startPositionFromBeginning, int endPositionFromBeginning);
 
 private:
+    void updateColors();
+    bool eventFilter(QObject *watched, QEvent *event) override;
     void updateSearchStatus();
     Ui::SearchResultsDock *ui;
 

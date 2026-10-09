@@ -44,6 +44,7 @@
 #include <QFontDatabase>
 #include <QPalette>
 #include <QStyleFactory>
+#include <QStyleHints>
 #include <QStyle>
 
 #ifdef Q_OS_WIN
@@ -1879,16 +1880,27 @@ void MainWindow::applyStyleSheet()
     qInfo(Q_FUNC_INFO);
 
     auto *settings = app->getSettings();
-    const bool dark = settings->effectiveDarkMode();
-    if (systemStyleName.isEmpty()) systemStyleName = QApplication::style()->objectName();
+    if (systemStyleName.isEmpty()) {
+        systemStyleName = QApplication::style()->objectName();
+    }
 
     if (settings->theme() == ApplicationSettings::SystemTheme) {
         if (explicitThemeActive) {
-            if (auto *style = QStyleFactory::create(systemStyleName)) QApplication::setStyle(style);
-            QApplication::setPalette(QApplication::style()->standardPalette());
+            if (auto *style = QStyleFactory::create(systemStyleName)) {
+                QApplication::setStyle(style);
+            }
+            QApplication::setPalette(QPalette());
             explicitThemeActive = false;
         }
-    } else {
+    }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+    // Application-scoped hint also covers native dialogs and floating docks.
+    QApplication::styleHints()->setColorScheme(settings->theme() == ApplicationSettings::SystemTheme
+        ? Qt::ColorScheme::Unknown : settings->theme() == ApplicationSettings::DarkTheme
+        ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
+#endif
+    const bool dark = settings->effectiveDarkMode();
+    if (settings->theme() != ApplicationSettings::SystemTheme) {
         // Native controls can ignore palettes; Fusion respects explicit overrides.
         if (!explicitThemeActive) {
             QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
@@ -1910,6 +1922,7 @@ void MainWindow::applyStyleSheet()
             p.setColor(QPalette::ToolTipBase,     QColor(0x25, 0x25, 0x26));
             p.setColor(QPalette::ToolTipText,     QColor(0xD4, 0xD4, 0xD4));
             p.setColor(QPalette::Link,            QColor(0x40, 0xA0, 0xFF));
+            p.setColor(QPalette::PlaceholderText, QColor(0x99, 0x99, 0x99));
             p.setColor(QPalette::Disabled, QPalette::Text,       QColor(0x99, 0x99, 0x99));
             p.setColor(QPalette::Disabled, QPalette::ButtonText, QColor(0x99, 0x99, 0x99));
             p.setColor(QPalette::Disabled, QPalette::WindowText, QColor(0x99, 0x99, 0x99));
@@ -1928,6 +1941,7 @@ void MainWindow::applyStyleSheet()
             p.setColor(QPalette::Link,            QColor(0x00, 0x00, 0xEE));
             p.setColor(QPalette::Disabled, QPalette::Text,       QColor(0x99, 0x99, 0x99));
             p.setColor(QPalette::Disabled, QPalette::ButtonText, QColor(0x99, 0x99, 0x99));
+            p.setColor(QPalette::Disabled, QPalette::WindowText, QColor(0x99, 0x99, 0x99));
         }
         QApplication::setPalette(p);
     }
@@ -1955,9 +1969,9 @@ void MainWindow::applyStyleSheet()
     }
 
     setStyleSheet(sheet);
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 8, 0)
     const BOOL darkTitleBar = dark;
-    DwmSetWindowAttribute(reinterpret_cast<HWND>(winId()), 20, &darkTitleBar, sizeof(darkTitleBar));
+    DwmSetWindowAttribute(reinterpret_cast<HWND>(winId()), DWMWA_USE_IMMERSIVE_DARK_MODE, &darkTitleBar, sizeof(darkTitleBar));
 #endif
 }
 

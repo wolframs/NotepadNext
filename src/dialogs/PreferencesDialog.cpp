@@ -44,12 +44,15 @@ PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *par
     MapSettingToCheckBox(ui->checkBoxMenuBar, &ApplicationSettings::showMenuBar, &ApplicationSettings::setShowMenuBar, &ApplicationSettings::showMenuBarChanged);
     MapSettingToCheckBox(ui->checkBoxToolBar, &ApplicationSettings::showToolBar, &ApplicationSettings::setShowToolBar, &ApplicationSettings::showToolBarChanged);
     MapSettingToCheckBox(ui->checkBoxStatusBar, &ApplicationSettings::showStatusBar, &ApplicationSettings::setShowStatusBar, &ApplicationSettings::showStatusBarChanged);
-    ui->comboBoxTheme->setCurrentIndex(static_cast<int>(settings->theme()));
-    connect(ui->comboBoxTheme, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [=](int index) {
-        settings->setTheme(static_cast<ApplicationSettings::ThemeMode>(index));
+    ui->comboBoxTheme->setItemData(0, ApplicationSettings::SystemTheme);
+    ui->comboBoxTheme->setItemData(1, ApplicationSettings::LightTheme);
+    ui->comboBoxTheme->setItemData(2, ApplicationSettings::DarkTheme);
+    ui->comboBoxTheme->setCurrentIndex(ui->comboBoxTheme->findData(settings->theme()));
+    connect(ui->comboBoxTheme, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [=, this](int index) {
+        settings->setTheme(static_cast<ApplicationSettings::ThemeMode>(ui->comboBoxTheme->itemData(index).toInt()));
     });
-    connect(settings, &ApplicationSettings::themeChanged, this, [=](ApplicationSettings::ThemeMode mode) {
-        ui->comboBoxTheme->setCurrentIndex(static_cast<int>(mode));
+    connect(settings, &ApplicationSettings::themeChanged, this, [=, this](ApplicationSettings::ThemeMode mode) {
+        ui->comboBoxTheme->setCurrentIndex(ui->comboBoxTheme->findData(mode));
     });
     MapSettingToCheckBox(ui->checkBoxRecenterSearchDialog, &ApplicationSettings::centerSearchDialog, &ApplicationSettings::setCenterSearchDialog, &ApplicationSettings::centerSearchDialogChanged);
 

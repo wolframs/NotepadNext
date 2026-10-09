@@ -106,14 +106,16 @@ function DialogFilters()
     return table.concat(filters, ";;")
 end
 
-function SetStyle(L)
+function ResetStyles()
     -- Apply theme base: STYLE_DEFAULT sets the canvas for styleClearAll().
     -- This ensures every style slot starts with the correct background color
     -- even for styles not explicitly listed in the language definition.
     editor.StyleFore[STYLE_DEFAULT] = theme.default_fg
     editor.StyleBack[STYLE_DEFAULT] = theme.default_bg
     editor:StyleClearAll()
+end
 
+function SetStyle(L)
     if L.styles then
         for _, style in pairs(L.styles) do
             local bg = ThemeBackground(style.bgColor)
@@ -143,6 +145,17 @@ function SetStyle(L)
     end
 end
 
+function ApplyLanguageStyles(languageName)
+    local L = languages[languageName]
+    ResetStyles()
+    SetStyle(L)
+    if L.additionalLanguages then
+        for _, language in pairs(L.additionalLanguages) do
+            SetStyle(languages[language])
+        end
+    end
+end
+
 function SetLanguage(languageName)
     local L = languages[languageName]
 
@@ -156,13 +169,7 @@ function SetLanguage(languageName)
 
     editor.MarginWidthN[2] = L.disableFoldMargin and 0 or 16
 
-    SetStyle(L)
-
-    if L.additionalLanguages then
-        for _, language in pairs(L.additionalLanguages) do
-            SetStyle(languages[language])
-        end
-    end
+    ApplyLanguageStyles(languageName)
 
 
     editor.Property["fold"] = "1"

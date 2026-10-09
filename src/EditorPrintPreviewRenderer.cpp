@@ -31,6 +31,13 @@ EditorPrintPreviewRenderer::EditorPrintPreviewRenderer(ScintillaNext *editor)
 
 void EditorPrintPreviewRenderer::render(QPrinter *printer)
 {
+    // Screen themes must not turn a printed page into a solid dark rectangle.
+    const auto previousMode = editor->printColourMode();
+    const int background = editor->styleBack(STYLE_DEFAULT);
+    const QColor color(background & 0xFF, (background >> 8) & 0xFF, (background >> 16) & 0xFF);
+    if (color.lightness() < 128) {
+        editor->setPrintColourMode(SC_PRINT_BLACKONWHITE);
+    }
     QRectF printableArea(QPointF(0, 0), printer->pageRect(QPrinter::DevicePixel).size());
 
     qInfo() << "Print from page" << printer->fromPage() << "to" << printer->toPage();
@@ -67,4 +74,5 @@ void EditorPrintPreviewRenderer::render(QPrinter *printer)
 
         pageNum++;
     } while (startPos < editor->length());
+    editor->setPrintColourMode(previousMode);
 }

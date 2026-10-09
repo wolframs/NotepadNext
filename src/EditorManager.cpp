@@ -140,10 +140,6 @@ EditorManager::EditorManager(ApplicationSettings *settings, QObject *parent)
         }
     });
 
-    connect(settings, &ApplicationSettings::effectiveDarkModeChanged, this, [=](bool) {
-        for (auto &editor : getEditors())
-            applyEditorTheme(editor);
-    });
 }
 
 ScintillaNext *EditorManager::createEditor(const QString &name)
@@ -262,11 +258,6 @@ void EditorManager::setupEditor(ScintillaNext *editor)
 #endif
 
     editor->setFoldMarkers(QStringLiteral("box"));
-    for (int i = SC_MARKNUM_FOLDEREND; i <= SC_MARKNUM_FOLDEROPEN; ++i) {
-        editor->markerSetFore(i, 0xF3F3F3);
-        editor->markerSetBack(i, 0x808080);
-        editor->markerSetBackSelected(i, 0x0000FF);
-    }
 
     editor->setScaleTechnique(SCALE_TECHNIQUE_PIXEL_ALIGNED);
 

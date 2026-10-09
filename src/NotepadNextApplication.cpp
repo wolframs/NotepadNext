@@ -528,7 +528,16 @@ void NotepadNextApplication::refreshEditorTheme()
     getLuaState()->execute("UpdateTheme()");
 
     for (auto &editor : editorManager->getEditors()) {
-        if (!editor->languageName.isEmpty())
-            setEditorLanguage(editor, editor->languageName);
+        editorManager->applyEditorTheme(editor);
+        if (!editor->languageName.isEmpty()) {
+            LuaExtension::Instance().setEditor(editor);
+            getLuaState()->setVariable("languageName", editor->languageName);
+            getLuaState()->execute("ApplyLanguageStyles(languageName)");
+            editorManager->applyEditorNamedStyles(editor);
+        }
+    }
+    // Theme refresh must not leave Lua targeting a background tab.
+    if (window) {
+        LuaExtension::Instance().setEditor(window->currentEditor());
     }
 }

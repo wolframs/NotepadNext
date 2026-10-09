@@ -37,6 +37,7 @@ SearchResultsDock::SearchResultsDock(QWidget *parent) :
     ui(new Ui::SearchResultsDock)
 {
     ui->setupUi(this);
+    ui->treeWidget->installEventFilter(this);
 
     // Close the results when escape is pressed
     new QShortcut(QKeySequence::Cancel, this, this, &SearchResultsDock::close, Qt::WidgetWithChildrenShortcut);
@@ -84,6 +85,27 @@ SearchResultsDock::~SearchResultsDock()
     delete ui;
 }
 
+bool SearchResultsDock::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == ui->treeWidget && event->type() == QEvent::PaletteChange) {
+        updateColors();
+    }
+    return QDockWidget::eventFilter(watched, event);
+}
+
+void SearchResultsDock::updateColors()
+{
+    const QPalette palette = ui->treeWidget->palette();
+    QTreeWidgetItemIterator it(ui->treeWidget);
+    while (*it) {
+        QTreeWidgetItem *item = *it;
+        const bool searchHeader = !item->parent();
+        item->setBackground(0, palette.brush(searchHeader ? QPalette::Highlight : QPalette::AlternateBase));
+        item->setForeground(0, palette.brush(searchHeader ? QPalette::HighlightedText : QPalette::Text));
+        ++it;
+    }
+}
+
 void SearchResultsDock::newSearch(const QString searchTerm)
 {
     show();
@@ -99,8 +121,8 @@ void SearchResultsDock::newSearch(const QString searchTerm)
     currentSearch = new QTreeWidgetItem();
     ui->treeWidget->insertTopLevelItem(0, currentSearch);
 
-    currentSearch->setBackground(0, QColor(232, 232, 255));
-    currentSearch->setForeground(0, QColor(0, 0, 170));
+    currentSearch->setBackground(0, ui->treeWidget->palette().brush(QPalette::Highlight));
+    currentSearch->setForeground(0, ui->treeWidget->palette().brush(QPalette::HighlightedText));
     currentSearch->setExpanded(true);
     currentSearch->setFirstColumnSpanned(true);
 
@@ -118,8 +140,8 @@ void SearchResultsDock::newFileEntry(ScintillaNext *editor)
     currentFile = new QTreeWidgetItem(currentSearch);
     currentFile->setData(0, Qt::UserRole, QVariant::fromValue(editor_pointer));
 
-    currentFile->setBackground(0, QColor(213, 255, 213));
-    currentFile->setForeground(0, QColor(0, 128, 0));
+    currentFile->setBackground(0, ui->treeWidget->palette().brush(QPalette::AlternateBase));
+    currentFile->setForeground(0, ui->treeWidget->palette().brush(QPalette::Text));
     currentFile->setExpanded(true);
     currentFile->setFirstColumnSpanned(true);
 
@@ -133,7 +155,8 @@ void SearchResultsDock::newResultsEntry(const QString line, int lineNumber, int 
 
     // Scintilla internally references line numbers starting at 0, however it needs displayed starting at 1
     item->setText(0, QString::number(lineNumber + 1));
-    item->setBackground(0, QBrush(QColor(220, 220, 220)));
+    item->setBackground(0, ui->treeWidget->palette().brush(QPalette::AlternateBase));
+    item->setForeground(0, ui->treeWidget->palette().brush(QPalette::Text));
     item->setTextAlignment(0, Qt::AlignRight);
 
     item->setData(1, SearchResultData::LineNumber, lineNumber);
