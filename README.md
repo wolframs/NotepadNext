@@ -4,7 +4,7 @@ This personal fork adds **dark mode and live Markdown preview**. See [FORK.md](F
 for the feature guide, limitations, and build/test instructions. The original project is
 [dail8859/NotepadNext](https://github.com/dail8859/NotepadNext).
 
-![Build Notepad Next](https://github.com/dail8859/NotepadNext/workflows/Build%20Notepad%20Next/badge.svg)
+![Upstream build](https://github.com/dail8859/NotepadNext/workflows/Build%20Notepad%20Next/badge.svg)
 
 A cross-platform, reimplementation of Notepad++.
 
@@ -15,6 +15,9 @@ There are numerous bugs and half working implementations. Pull requests are grea
 ![screenshot](/doc/screenshot.png)
 
 # Installation
+
+The packages below are upstream releases. Build this fork as described in [FORK.md](FORK.md)
+to use its additional features.
 
 Packages are available for Windows, Linux, and MacOS.
 

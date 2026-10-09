@@ -1,6 +1,11 @@
 # Review follow-up — 2026-10-09
 
-Implemented on `personal/enhancements`, following the [Claude review](upstream-review-2026-10-09.md).
+Implemented and deployed on `personal/enhancements`. The [original Claude review](https://github.com/wolframs/NotepadNext/blob/d3ba33f/reports/upstream-review-2026-10-09.md)
+is retained in Git history; this report supersedes its unfixed findings and checklist.
+
+The feature fixes are `27852a7` (theme), `9937d78` (preview), and `d3ba33f` (tests/CI/docs).
+They are synced to the personal GitHub fork and private Forgejo mirror. The existing local-build
+Start menu shortcut launches the updated package. No OS theme or global configuration was changed.
 
 ## Findings and disposition
 

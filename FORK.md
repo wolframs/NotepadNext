@@ -9,7 +9,7 @@ Settings → Preferences → GUI → Theme offers Dark, Light, and Follow system
 Dark is this fork's default when no theme preference has been saved. Theme changes apply immediately.
 
 The implementation starts from [upstream PR #1040](https://github.com/dail8859/NotepadNext/pull/1040),
-with the original commits and author attribution preserved. This fork resolves the conflicts with
+with the original author attribution preserved. This fork resolves the conflicts with
 newer upstream code, uses Fusion for explicit theme overrides, restores the native style on returning
 to Follow system, darkens the Windows title bar, improves disabled-label visibility, and lifts dark
 syntax foregrounds for readability against the dark editor canvas.
@@ -54,3 +54,16 @@ Tests cover Markdown structure and content refresh, relative image resolution ac
 network-resource blocking through the document renderer, local links and heading anchors,
 document lifetime and scroll position, theme persistence and signals, and combined PHP/HTML styles.
 The build workflow enables these tests across its Qt/platform matrix.
+
+## Current status and next session
+
+The deployed feature branch is `personal/enhancements`. Windows 11 / Qt 6.8.3 validation
+is recorded in [the review follow-up](reports/review-fixes-2026-10-09.md), including decisions
+that differed from the original static review. Cross-platform CI results are not yet confirmed.
+
+Before submitting upstream, extract Markdown preview onto a branch from upstream `master`
+and keep the dark-mode contribution separate, preserving PR #1040's authorship. Follow system
+should be the upstream default; Dark is a personal-fork preference. The original feature commit
+mixes both features, while the subsequent fixes are separated by feature.
+
+Plugins remain future work. No upstream PR has been submitted.
