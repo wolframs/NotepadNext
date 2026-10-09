@@ -13,6 +13,10 @@ qt_add_executable(NotepadNext
 	DockedEditorTitleBar.h
 
 	EditorManager.h
+	docks/MarkdownPreviewDock.h
+	docks/MarkdownPreviewDock.cpp
+	widgets/MarkdownPreviewBrowser.h
+	widgets/MarkdownPreviewBrowser.cpp
 	EditorPrintPreviewRenderer.h
 	FileDialogHelpers.h
 	Finder.h
@@ -213,6 +217,7 @@ target_include_directories(NotepadNext
 )
 
 if(WIN32)
+	target_link_libraries(NotepadNext PRIVATE dwmapi)
 	configure_file(
 		"${CMAKE_SOURCE_DIR}/deploy/windows/version.rc.in"
 		"${CMAKE_BINARY_DIR}/version.rc"

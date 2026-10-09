@@ -151,6 +151,8 @@ private:
     Ui::MainWindow *ui = Q_NULLPTR;
     NotepadNextApplication *app = Q_NULLPTR;
     DockedEditor *dockedEditor = Q_NULLPTR;
+    QString systemStyleName;
+    bool explicitThemeActive = false;
 
     QScopedPointer<SearchResultsCollector> searchResults;
 

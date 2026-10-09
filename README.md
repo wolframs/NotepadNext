@@ -1,5 +1,9 @@
 # Notepad Next
 
+This personal fork adds **dark mode and live Markdown preview**. See [FORK.md](FORK.md)
+for the feature guide, limitations, and build/test instructions. The original project is
+[dail8859/NotepadNext](https://github.com/dail8859/NotepadNext).
+
 ![Build Notepad Next](https://github.com/dail8859/NotepadNext/workflows/Build%20Notepad%20Next/badge.svg)
 
 A cross-platform, reimplementation of Notepad++.

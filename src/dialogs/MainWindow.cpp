@@ -43,10 +43,13 @@
 #include <QScreen>
 #include <QFontDatabase>
 #include <QPalette>
+#include <QStyleFactory>
+#include <QStyle>
 
 #ifdef Q_OS_WIN
 #include <QSimpleUpdater.h>
 #include <Windows.h>
+#include <dwmapi.h>
 #endif
 
 #include "DockAreaWidget.h"
@@ -67,6 +70,7 @@
 #include "SearchResultsDock.h"
 #include "DebugLogDock.h"
 #include "FileListDock.h"
+#include "MarkdownPreviewDock.h"
 
 #include "FindReplaceDialog.h"
 #include "MacroRunDialog.h"
@@ -1003,6 +1007,11 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
     addDockWidget(Qt::LeftDockWidgetArea, fileListDock);
     ui->menuView->addAction(fileListDock->toggleViewAction());
 
+    auto *markdownPreview = new MarkdownPreviewDock(this);
+    markdownPreview->hide();
+    addDockWidget(Qt::RightDockWidgetArea, markdownPreview);
+    ui->menuView->addAction(markdownPreview->toggleViewAction());
+
     connect(app->getSettings(), &ApplicationSettings::showMenuBarChanged, this, [this](bool showMenuBar) {
         // Don't 'hide' it, else the actions won't be enabled
         ui->menuBar->setMaximumHeight(showMenuBar ? QWIDGETSIZE_MAX : 0);
@@ -1871,11 +1880,20 @@ void MainWindow::applyStyleSheet()
 
     auto *settings = app->getSettings();
     const bool dark = settings->effectiveDarkMode();
+    if (systemStyleName.isEmpty()) systemStyleName = QApplication::style()->objectName();
 
     if (settings->theme() == ApplicationSettings::SystemTheme) {
-        // Follow the desktop environment - leave the Qt-default palette alone.
-        // Qt 6.5+ already syncs the palette with QStyleHints::colorScheme().
+        if (explicitThemeActive) {
+            if (auto *style = QStyleFactory::create(systemStyleName)) QApplication::setStyle(style);
+            QApplication::setPalette(QApplication::style()->standardPalette());
+            explicitThemeActive = false;
+        }
     } else {
+        // Native controls can ignore palettes; Fusion respects explicit overrides.
+        if (!explicitThemeActive) {
+            QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+            explicitThemeActive = true;
+        }
         // Explicit Light or Dark override - hardcoded palette so the app
         // theme is independent of the system color scheme.
         QPalette p;
@@ -1892,8 +1910,9 @@ void MainWindow::applyStyleSheet()
             p.setColor(QPalette::ToolTipBase,     QColor(0x25, 0x25, 0x26));
             p.setColor(QPalette::ToolTipText,     QColor(0xD4, 0xD4, 0xD4));
             p.setColor(QPalette::Link,            QColor(0x40, 0xA0, 0xFF));
-            p.setColor(QPalette::Disabled, QPalette::Text,       QColor(0x66, 0x66, 0x66));
-            p.setColor(QPalette::Disabled, QPalette::ButtonText, QColor(0x66, 0x66, 0x66));
+            p.setColor(QPalette::Disabled, QPalette::Text,       QColor(0x99, 0x99, 0x99));
+            p.setColor(QPalette::Disabled, QPalette::ButtonText, QColor(0x99, 0x99, 0x99));
+            p.setColor(QPalette::Disabled, QPalette::WindowText, QColor(0x99, 0x99, 0x99));
         } else {
             p.setColor(QPalette::Window,          QColor(0xF0, 0xF0, 0xF0));
             p.setColor(QPalette::WindowText,      QColor(0x00, 0x00, 0x00));
@@ -1936,6 +1955,10 @@ void MainWindow::applyStyleSheet()
     }
 
     setStyleSheet(sheet);
+#ifdef Q_OS_WIN
+    const BOOL darkTitleBar = dark;
+    DwmSetWindowAttribute(reinterpret_cast<HWND>(winId()), 20, &darkTitleBar, sizeof(darkTitleBar));
+#endif
 }
 
 void MainWindow::setLanguage(ScintillaNext *editor, const QString &languageName)
@@ -1944,6 +1967,7 @@ void MainWindow::setLanguage(ScintillaNext *editor, const QString &languageName)
     qInfo("Language Name: %s", qUtf8Printable(languageName));
 
     app->setEditorLanguage(editor, languageName);
+    if (auto *preview = findChild<MarkdownPreviewDock *>()) preview->refresh();
 }
 
 void MainWindow::bringWindowToForeground()

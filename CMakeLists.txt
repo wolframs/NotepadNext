@@ -48,3 +48,9 @@ add_subdirectory(thirdparty)
 add_subdirectory(src)
 
 include(${CMAKE_SOURCE_DIR}/cmake/Packaging.cmake)
+
+option(NOTEPADNEXT_BUILD_TESTS "Build editor feature tests" OFF)
+if(NOTEPADNEXT_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

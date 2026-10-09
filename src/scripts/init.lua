@@ -26,6 +26,40 @@ end
 
 UpdateTheme()
 
+-- Light-language syntax colors need enough contrast against the dark canvas.
+-- Scintilla stores colors as BGR. Lift only foregrounds that fail 4.5:1.
+function ThemeBackground(color)
+    if not dark_mode or color == nil then return color end
+    if color == theme.light_bg then return theme.default_bg end
+    local r, g, b = color & 0xFF, (color >> 8) & 0xFF, (color >> 16) & 0xFF
+    if (0.2126*r + 0.7152*g + 0.0722*b) > 160 then
+        r, g, b = math.floor(20+r*0.08), math.floor(20+g*0.08), math.floor(20+b*0.08)
+        return r | (g << 8) | (b << 16)
+    end
+    return color
+end
+
+function ThemeForeground(color, backgroundColor)
+    if not dark_mode or color == nil then return color end
+    if color == theme.light_fg then return theme.default_fg end
+    local r, g, b = color & 0xFF, (color >> 8) & 0xFF, (color >> 16) & 0xFF
+    local function linear(c)
+        c = c / 255
+        if c <= 0.04045 then return c / 12.92 end
+        return ((c + 0.055) / 1.055) ^ 2.4
+    end
+    local bg = backgroundColor or theme.default_bg
+    local background = 0.2126*linear(bg & 0xFF) + 0.7152*linear((bg >> 8) & 0xFF) + 0.0722*linear((bg >> 16) & 0xFF)
+    for step = 0, 10 do
+        local mix = step / 10
+        local rr, gg, bb = math.floor(r + (255-r)*mix), math.floor(g + (255-g)*mix), math.floor(b + (255-b)*mix)
+        local light = 0.2126*linear(rr) + 0.7152*linear(gg) + 0.0722*linear(bb)
+        local contrast = (math.max(light, background)+0.05) / (math.min(light, background)+0.05)
+        if contrast >= 4.5 then return rr | (gg << 8) | (bb << 16) end
+    end
+    return theme.default_fg
+end
+
 function DetectLanguageFromContents(contents)
     for name, L in pairs(languages) do
         if L.first_line then
@@ -82,12 +116,8 @@ function SetStyle(L)
 
     if L.styles then
         for _, style in pairs(L.styles) do
-            -- Translate canonical light-mode colors to theme equivalents.
-            -- Language files that specify black text on white background get
-            -- auto-converted; deliberate syntax colors (blue, green, etc.)
-            -- pass through unchanged since they are readable on dark backgrounds.
-            local fg = (style.fgColor == theme.light_fg) and theme.default_fg or style.fgColor
-            local bg = (style.bgColor == theme.light_bg) and theme.default_bg or style.bgColor
+            local bg = ThemeBackground(style.bgColor)
+            local fg = ThemeForeground(style.fgColor, bg)
             editor.StyleFore[style.id] = fg
             editor.StyleBack[style.id] = bg
 

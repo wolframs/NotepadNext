@@ -96,4 +96,4 @@ CREATE_SETTING(Editor, URLHighlighting, urlHighlighting, bool, true)
 CREATE_SETTING(Editor, ShowLineNumbers, showLineNumbers, bool, true)
 CREATE_SETTING(Editor, AutoCompletion, autoCompletion, bool, true)
 
-CREATE_SETTING(Gui, Theme, theme, ApplicationSettings::ThemeMode, ApplicationSettings::SystemTheme)
+CREATE_SETTING(Gui, Theme, theme, ApplicationSettings::ThemeMode, ApplicationSettings::DarkTheme)
